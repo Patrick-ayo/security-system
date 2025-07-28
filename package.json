@@ -1,0 +1,21 @@
+{
+  "name": "ai-security-monitor-root",
+  "version": "1.0.0",
+  "description": "AI Security Monitor - Root Package",
+  "scripts": {
+    "start": "cd electron-app && npm start",
+    "dev": "cd electron-app && npm run dev",
+    "install-deps": "cd electron-app && npm install",
+    "build": "cd electron-app && npm run build",
+    "setup": "python setup.py"
+  },
+  "keywords": [
+    "security",
+    "ai",
+    "monitoring",
+    "electron",
+    "python"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+} 

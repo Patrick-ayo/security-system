@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Security Monitor</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        
+        #root {
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-size: 18px;
+            color: #ffffff;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* App Styles */
+        .app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        }
+        
+        .app-header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .app-header h1 {
+            margin: 0;
+            color: #00ff88;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .start-btn, .stop-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .start-btn {
+            background: #00ff88;
+            color: #000;
+        }
+        
+        .start-btn:hover {
+            background: #00cc6a;
+            transform: translateY(-2px);
+        }
+        
+        .stop-btn {
+            background: #ff4444;
+            color: #fff;
+        }
+        
+        .stop-btn:hover {
+            background: #cc3333;
+            transform: translateY(-2px);
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .video-section {
+            flex: 2;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #333;
+        }
+        
+        .video-section h2 {
+            margin: 0 0 20px 0;
+            color: #fff;
+            font-size: 18px;
+        }
+        
+        .video-placeholder {
+            height: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #444;
+        }
+        
+        .video-placeholder p {
+            color: #888;
+            font-size: 16px;
+            text-align: center;
+        }
+        
+        .sidebar {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .logs-section {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #333;
+        }
+        
+        .logs-section h3 {
+            margin: 0 0 15px 0;
+            color: #fff;
+            font-size: 16px;
+        }
+        
+        .logs-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            font-size: 12px;
+            border-left: 3px solid #00ff88;
+        }
+        
+        .log-entry .timestamp {
+            color: #888;
+            margin-right: 10px;
+        }
+        
+        .log-entry .message {
+            color: #fff;
+        }
+        
+        .log-entry.warning {
+            border-left-color: #ff4444 !important;
+            background: rgba(255, 68, 68, 0.1) !important;
+        }
+        
+        .log-entry.warning .message {
+            color: #ffcccc;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="loading">
+            <div class="spinner"></div>
+            <span>Loading AI Security Monitor...</span>
+        </div>
+    </div>
+    
+    <!-- React and ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script type="text/babel">
+        // Health check for backend
+        async function checkBackendHealth() {
+            try {
+                const response = await fetch('http://localhost:8000/docs'); // FastAPI docs endpoint always available
+                return response.ok;
+            } catch {
+                return false;
+            }
+        }
+
+        async function getBase64FromVideo(video) {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/jpeg').split(',')[1];
+        }
+
+        async function yoloDetect(base64Image) {
+            try {
+                const response = await fetch('http://localhost:8000/detect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image_base64: base64Image })
+                });
+                if (!response.ok) throw new Error('Backend error');
+                return await response.json();
+            } catch (e) {
+                console.error('YOLO backend error:', e);
+                return { detections: [] };
+            }
+        }
+
+        function App() {
+            const [isMonitoring, setIsMonitoring] = React.useState(false);
+            const [logs, setLogs] = React.useState([]);
+            const [videoStream, setVideoStream] = React.useState(null);
+            const [cameraError, setCameraError] = React.useState(null);
+            const [detections, setDetections] = React.useState([]);
+            const [backendStatus, setBackendStatus] = React.useState(false);
+            const [backendStatusText, setBackendStatusText] = React.useState('Checking...');
+            const videoRef = React.useRef(null);
+            const canvasRef = React.useRef(null);
+            const detectionIntervalRef = React.useRef(null);
+            const healthIntervalRef = React.useRef(null);
+
+            // Health check effect
+            React.useEffect(() => {
+                async function pollHealth() {
+                    const ok = await checkBackendHealth();
+                    setBackendStatus(ok);
+                    setBackendStatusText(ok ? 'Connected' : 'Disconnected');
+                }
+                pollHealth();
+                healthIntervalRef.current = setInterval(pollHealth, 2000);
+                return () => clearInterval(healthIntervalRef.current);
+            }, []);
+
+            React.useEffect(() => {
+                // Draw bounding boxes on canvas
+                if (!isMonitoring || !canvasRef.current || !videoRef.current) return;
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+                detections.forEach(obj => {
+                    const [x1, y1, x2, y2] = obj.bbox;
+                    ctx.strokeStyle = obj.harmful ? '#ff4444' : '#00ff88';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                    ctx.font = '16px Arial';
+                    ctx.fillStyle = obj.harmful ? '#ff4444' : '#00ff88';
+                    ctx.fillText(`${obj.label} (${(obj.confidence * 100).toFixed(1)}%)`, x1, y1 > 20 ? y1 - 5 : y1 + 20);
+                });
+            }, [detections, isMonitoring]);
+
+            const startCamera = async () => {
+                try {
+                    setCameraError(null);
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+                        audio: false
+                    });
+                    setVideoStream(stream);
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                    }
+                    setLogs(prev => [...prev, { timestamp: new Date().toISOString(), message: 'Camera access granted' }]);
+                } catch (error) {
+                    setCameraError('Camera access denied or not available');
+                    setLogs(prev => [...prev, { timestamp: new Date().toISOString(), error: true, message: `Camera error: ${error.message}` }]);
+                }
+            };
+
+            const stopCamera = () => {
+                if (videoStream) {
+                    videoStream.getTracks().forEach(track => track.stop());
+                    setVideoStream(null);
+                }
+                if (videoRef.current) {
+                    videoRef.current.srcObject = null;
+                }
+                setLogs(prev => [...prev, { timestamp: new Date().toISOString(), message: 'Camera stopped' }]);
+            };
+
+            const startObjectDetection = () => {
+                setLogs(prev => [...prev, { timestamp: new Date().toISOString(), message: 'YOLOv8 object detection started' }]);
+                detectionIntervalRef.current = setInterval(async () => {
+                    if (!backendStatus) return;
+                    if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+                        const base64 = await getBase64FromVideo(videoRef.current);
+                        const result = await yoloDetect(base64);
+                        setDetections(result.detections || []);
+                        (result.detections || []).forEach(obj => {
+                            setLogs(prev => [...prev, {
+                                timestamp: new Date().toISOString(),
+                                message: `${obj.harmful ? '⚠️ HARMFUL' : '✅ SAFE'}: ${obj.label} (${(obj.confidence * 100).toFixed(1)}%) - ${obj.reason}`,
+                                isWarning: obj.harmful
+                            }]);
+                        });
+                    }
+                }, 600);
+            };
+
+            const stopObjectDetection = () => {
+                if (detectionIntervalRef.current) {
+                    clearInterval(detectionIntervalRef.current);
+                    detectionIntervalRef.current = null;
+                }
+                setDetections([]);
+                setLogs(prev => [...prev, { timestamp: new Date().toISOString(), message: 'Object detection stopped' }]);
+            };
+
+            const startMonitoring = async () => {
+                try {
+                    if (!backendStatus) {
+                        setLogs(prev => [...prev, { timestamp: new Date().toISOString(), error: true, message: 'Cannot start: Backend not connected.' }]);
+                        return;
+                    }
+                    await startCamera();
+                    startObjectDetection();
+                    setIsMonitoring(true);
+                } catch (error) {
+                    setLogs(prev => [...prev, { timestamp: new Date().toISOString(), error: true, message: `Monitoring error: ${error.message}` }]);
+                }
+            };
+
+            const stopMonitoring = async () => {
+                try {
+                    stopObjectDetection();
+                    stopCamera();
+                    setIsMonitoring(false);
+                } catch (error) {
+                    setLogs(prev => [...prev, { timestamp: new Date().toISOString(), error: true, message: `Stop monitoring error: ${error.message}` }]);
+                }
+            };
+
+            return React.createElement('div', { className: 'app' },
+                React.createElement('header', { className: 'app-header' },
+                    React.createElement('h1', null, 'AI Security Monitor (YOLOv8)'),
+                    React.createElement('div', { className: 'controls' },
+                        React.createElement('span', {
+                            style: {
+                                marginRight: '20px',
+                                fontWeight: 'bold',
+                                color: backendStatus ? '#00ff88' : '#ff4444',
+                                border: '1px solid',
+                                borderColor: backendStatus ? '#00ff88' : '#ff4444',
+                                borderRadius: '5px',
+                                padding: '4px 10px',
+                                background: backendStatus ? 'rgba(0,255,136,0.08)' : 'rgba(255,68,68,0.08)'
+                            }
+                        }, `Backend: ${backendStatusText}`),
+                        React.createElement('button', {
+                            onClick: isMonitoring ? stopMonitoring : startMonitoring,
+                            className: isMonitoring ? 'stop-btn' : 'start-btn',
+                            disabled: !backendStatus
+                        }, isMonitoring ? 'Stop Monitoring' : 'Start Monitoring')
+                    )
+                ),
+                !backendStatus && React.createElement('div', {
+                    style: {
+                        color: '#ff4444',
+                        background: 'rgba(255,68,68,0.08)',
+                        padding: '10px',
+                        textAlign: 'center',
+                        fontWeight: 'bold',
+                        borderBottom: '1px solid #ff4444'
+                    }
+                }, 'Backend not connected. Please start python-backend/object_detect.py'),
+                React.createElement('div', { className: 'main-content' },
+                    React.createElement('div', { className: 'video-section' },
+                        React.createElement('h2', null, 'Live Feed'),
+                        React.createElement('div', { style: { position: 'relative', width: 640, height: 480 } },
+                            React.createElement('video', {
+                                ref: videoRef,
+                                autoPlay: true,
+                                playsInline: true,
+                                muted: true,
+                                width: 640,
+                                height: 480,
+                                style: { borderRadius: '8px', position: 'absolute', top: 0, left: 0, zIndex: 1 }
+                            }),
+                            React.createElement('canvas', {
+                                ref: canvasRef,
+                                width: 640,
+                                height: 480,
+                                style: { position: 'absolute', top: 0, left: 0, zIndex: 2, pointerEvents: 'none' }
+                            })
+                        )
+                    ),
+                    React.createElement('div', { className: 'sidebar' },
+                        React.createElement('div', { className: 'logs-section' },
+                            React.createElement('h3', null, 'System Logs'),
+                            React.createElement('div', { className: 'logs-list' },
+                                logs.slice(-15).map((log, index) =>
+                                    React.createElement('div', {
+                                        key: index,
+                                        className: `log-entry ${log.isWarning ? 'warning' : ''}`
+                                    },
+                                        React.createElement('span', { className: 'timestamp' }, log.timestamp),
+                                        React.createElement('span', { className: 'message' }, log.message)
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        ReactDOM.render(
+            React.createElement(App),
+            document.getElementById('root')
+        );
+    </script>
+</body>
+</html> 
