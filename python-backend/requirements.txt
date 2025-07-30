@@ -1,46 +1,49 @@
-# Core dependencies
+# Security System Dependencies
+# Core dependencies for multi-person detection and audio monitoring
+
+# Computer Vision and Image Processing
 opencv-python>=4.8.0
 numpy>=1.24.0
 Pillow>=10.0.0
 
-# AI and Machine Learning
+# YOLO Object Detection
+ultralytics>=8.0.0
 torch>=2.0.0
 torchvision>=0.15.0
-ultralytics>=8.0.0
-mediapipe>=0.10.0
-
-# Face Recognition
-deepface>=0.0.79
-face-recognition>=1.3.0
-dlib>=19.24.0
-
-# Speech Recognition
-vosk>=0.3.45
-SpeechRecognition>=3.10.0
-pyaudio>=0.2.11
 
 # Audio Processing
+pyaudio>=0.2.11
 librosa>=0.10.0
 soundfile>=0.12.0
+scipy>=1.11.0
 
-# Database and Storage
-cryptography>=41.0.0
+# Speech Recognition
+SpeechRecognition>=3.10.0
+vosk>=0.3.45
+
+# Web Framework
+fastapi>=0.104.0
+uvicorn>=0.24.0
+websockets>=11.0.0
+
+# Data Processing
+pandas>=2.0.0
+matplotlib>=3.7.0
 
 # Utilities
-requests>=2.31.0
-python-dateutil>=2.8.0
-pathlib2>=2.3.0
+psutil>=5.9.0
+pyyaml>=6.0
+pathlib2>=2.3.7
+
+# Optional: Face Recognition (if needed)
+# face-recognition>=1.3.0
+# dlib>=19.24.0
+
+# Optional: Deep Learning (if needed)
+# tensorflow>=2.13.0
+# keras>=2.13.0
 
 # Development and Testing
 pytest>=7.4.0
-pytest-cov>=4.1.0
 black>=23.0.0
-flake8>=6.0.0
-
-# Optional: GPU acceleration
-# torch-gpu>=2.0.0  # Uncomment if using GPU
-# tensorflow-gpu>=2.13.0  # Uncomment if using TensorFlow
-
-# Optional: Additional AI models
-# transformers>=4.30.0  # For advanced NLP
-# sentence-transformers>=2.2.0  # For text similarity 
+flake8>=6.0.0 
